@@ -1,0 +1,37 @@
+<mujoco model="xl430_arm">
+  <compiler angle="degree" coordinate="local"/>
+  <option timestep="0.002"/>
+
+  <worldbody>
+    <!-- Base servo mounted on table -->
+    <body name="base" pos="0 0 0">
+      <!-- XL430 servo body -->
+      <geom name="base_servo" type="cylinder" size="0.0215 0.017" rgba="0.4 0.4 0.4 1"/>
+
+      <!-- Shoulder joint (rotates around Z) -->
+      <joint name="shoulder" type="hinge" axis="0 0 1" pos="0 0 0" range="-150 150"/>
+
+      <!-- First Link -->
+      <body name="link1" pos="0.0 0.0 0.034"> <!-- Lifted above motor -->
+        <geom type="capsule" fromto="0 0 0 0.1 0 0" size="0.0075" rgba="0.2 0.6 0.8 1"/>
+
+        <!-- Elbow servo -->
+        <body name="elbow_servo" pos="0.0 0.0 0.034">
+          <geom name="elbow_servo_geom" type="cylinder" size="0.0215 0.017" rgba="0.4 0.4 0.4 1"/>
+          <joint name="elbow" type="hinge" axis="0 1 0" pos="0 0 0" range="-150 150"/>
+
+          <!-- Second Link -->
+          <body name="link2" pos="0 0 0.034">
+            <geom type="capsule" fromto="0 0 0 0.1 0 0" size="0.0075" rgba="0.8 0.4 0.2 1"/>
+            <site name="ee_site" pos="0.1 0 0" size="0.005" rgba="1 0 0 1"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position joint="shoulder" kp="20"/>
+    <position joint="elbow" kp="20"/>
+  </actuator>
+</mujoco>

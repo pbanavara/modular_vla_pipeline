@@ -1,0 +1,76 @@
+[
+  {
+    "action": "move_to",
+    "gripper": "left",
+    "trajectory": [
+      {
+        "position": [0.42, 0.26, 0.2],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "close_gripper",
+    "gripper": "left",
+    "trajectory": []
+  },
+  {
+    "action": "move_to",
+    "gripper": "left",
+    "trajectory": [
+      {
+        "position": [0.1, 0.5, 0.2],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "open_tap",
+    "gripper": "right",
+    "trajectory": [
+      {
+        "position": [0.1, 0.5, 0.2],
+        "rotation": [0.0, 0.0, 1.57]
+      }
+    ]
+  },
+  {
+    "action": "rinse_object",
+    "gripper": "left",
+    "trajectory": [
+      {
+        "position": [0.1, 0.5, 0.15],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      {
+        "position": [0.1, 0.5, 0.15],
+        "rotation": [0.0, 0.0, 6.28]
+      }
+    ]
+  },
+  {
+    "action": "close_tap",
+    "gripper": "right",
+    "trajectory": [
+      {
+        "position": [0.1, 0.5, 0.2],
+        "rotation": [0.0, 0.0, -1.57]
+      }
+    ]
+  },
+  {
+    "action": "move_to",
+    "gripper": "left",
+    "trajectory": [
+      {
+        "position": [0.65, 0.4, 0.2],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "open_gripper",
+    "gripper": "left",
+    "trajectory": []
+  }
+]
