@@ -1,0 +1,94 @@
+2025-05-05 17:15:26,544 - INFO - MuJoCo model path exists: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
+2025-05-05 17:15:26,544 - INFO - Starting pipeline run
+2025-05-05 17:15:26,544 - INFO - Step 1: Capturing image
+2025-05-05 17:15:26,938 - INFO - Step 2: Classifying and segmenting image
+2025-05-05 17:15:26,938 - INFO - Using device: mps
+2025-05-05 17:15:38,255 - INFO - Detected objects: [{'name': 'a plate', 'probability': np.float16(0.992), 'contour': array([[  0,   2],
+       [  0, 477],
+       [639, 477],
+       [639,   2]], dtype=int32), 'center': (319, 239), 'mask': array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [1, 1, 1, ..., 1, 1, 1],
+       ...,
+       [1, 1, 1, ..., 1, 1, 1],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0]], dtype=uint8)}]
+2025-05-05 17:15:38,255 - INFO - Object: {'name': 'a plate', 'probability': np.float16(0.992), 'contour': array([[  0,   2],
+       [  0, 477],
+       [639, 477],
+       [639,   2]], dtype=int32), 'center': (319, 239), 'mask': array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [1, 1, 1, ..., 1, 1, 1],
+       ...,
+       [1, 1, 1, ..., 1, 1, 1],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0]], dtype=uint8)}
+2025-05-05 17:15:38,278 - DEBUG - World coordinates: [-0.00031299 -0.00031299  0.18134938]
+2025-05-05 17:15:38,278 - INFO - Step 3: Generating plan
+2025-05-05 17:15:38,278 - INFO - Plan file does not exist: /Users/pbanavara/dev/modular_vla_pipeline/src/pipeline/plan.json
+2025-05-05 17:15:38,278 - INFO - ALOHA YAML path: /Users/pbanavara/dev/modular_vla_pipeline/src/planning/aloha.yaml
+2025-05-05 17:15:57,649 - INFO - Generated plan: [
+  {
+    "action": "move_to",
+    "gripper": "open",
+    "trajectory": [
+      {
+        "position": [0.0, -0.2, 0.3],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      {
+        "position": [-0.00031299, -0.00031299, 0.28134938],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "grasp",
+    "gripper": "close",
+    "trajectory": [
+      {
+        "position": [-0.00031299, -0.00031299, 0.18134938],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "move_to",
+    "gripper": "close",
+    "trajectory": [
+      {
+        "position": [-0.00031299, -0.00031299, 0.28134938],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      {
+        "position": [0.5, 0.0, 0.3],
+        "rotation": [0.0, 0.0, 0.0] 
+      }
+    ]
+  },
+  {
+    "action": "release",
+    "gripper": "open",
+    "trajectory": [
+      {
+        "position": [0.5, 0.0, 0.2],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  },
+  {
+    "action": "move_to",
+    "gripper": "open", 
+    "trajectory": [
+      {
+        "position": [0.5, 0.0, 0.3],
+        "rotation": [0.0, 0.0, 0.0]
+      },
+      {
+        "position": [0.0, -0.2, 0.3],
+        "rotation": [0.0, 0.0, 0.0]
+      }
+    ]
+  }
+]
+2025-05-05 17:15:57,649 - INFO - Step 4: Executing actions

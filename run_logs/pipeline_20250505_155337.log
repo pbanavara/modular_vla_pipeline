@@ -1,0 +1,2 @@
+2025-05-05 15:53:37,936 - INFO - Using MuJoCo model path: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
+2025-05-05 15:53:37,936 - ERROR - MuJoCo model path does not exist: file:///Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml

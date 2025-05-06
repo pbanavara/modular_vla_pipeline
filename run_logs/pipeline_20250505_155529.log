@@ -1,0 +1,4 @@
+2025-05-05 15:55:29,914 - INFO - Using MuJoCo model path: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
+2025-05-05 15:55:29,914 - INFO - MuJoCo model path exists: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
+2025-05-05 15:55:29,914 - INFO - Starting pipeline run
+2025-05-05 15:55:29,914 - INFO - Step 1: Capturing image

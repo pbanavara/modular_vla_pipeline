@@ -1,0 +1,29 @@
+2025-05-05 17:17:51,200 - INFO - MuJoCo model path exists: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
+2025-05-05 17:17:51,200 - INFO - Starting pipeline run
+2025-05-05 17:17:51,200 - INFO - Step 1: Capturing image
+2025-05-05 17:17:51,477 - INFO - Step 2: Classifying and segmenting image
+2025-05-05 17:17:51,477 - INFO - Using device: mps
+2025-05-05 17:17:54,295 - INFO - Detected objects: [{'name': 'a plate', 'probability': np.float16(0.992), 'contour': array([[  0,   2],
+       [  0, 477],
+       [639, 477],
+       [639,   2]], dtype=int32), 'center': (319, 239), 'mask': array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [1, 1, 1, ..., 1, 1, 1],
+       ...,
+       [1, 1, 1, ..., 1, 1, 1],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0]], dtype=uint8)}]
+2025-05-05 17:17:54,295 - INFO - Object: {'name': 'a plate', 'probability': np.float16(0.992), 'contour': array([[  0,   2],
+       [  0, 477],
+       [639, 477],
+       [639,   2]], dtype=int32), 'center': (319, 239), 'mask': array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [1, 1, 1, ..., 1, 1, 1],
+       ...,
+       [1, 1, 1, ..., 1, 1, 1],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0]], dtype=uint8)}
+2025-05-05 17:17:54,320 - DEBUG - World coordinates: [-0.00031299 -0.00031299  0.18134938]
+2025-05-05 17:17:54,320 - INFO - Step 3: Generating plan
+2025-05-05 17:17:54,321 - INFO - Step 4: Executing actions
+2025-05-05 17:17:57,043 - INFO - Pipeline completed successfully
