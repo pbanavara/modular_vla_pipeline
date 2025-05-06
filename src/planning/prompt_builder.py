@@ -40,8 +40,9 @@ class PromptBuilder:
 
             ## Output Format
             Return a JSON array of task steps. Each step must contain:
-            - action
-            - gripper
+            - action : "move_to_pose" | "grasp" | "release"
+            - arm : "left" | "right"
+            - gripper : "open" | "close"
             - trajectory: list of {{ position: [x, y, z], rotation: [rx, ry, rz] }}
 
             Only return the JSON. No explanation or commentary.
