@@ -1,6 +1,0 @@
-2025-05-05 16:05:19,317 - INFO - Using MuJoCo model path: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
-2025-05-05 16:05:19,317 - INFO - MuJoCo model path exists: /Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/aloha/aloha.xml
-2025-05-05 16:05:19,317 - INFO - Starting pipeline run
-2025-05-05 16:05:19,317 - INFO - Step 1: Capturing image
-2025-05-05 16:05:19,656 - INFO - Step 2: Classifying and segmenting image
-2025-05-05 16:05:19,657 - INFO - Using device: mps

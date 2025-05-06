@@ -2,4 +2,5 @@
 *.jpeg
 .ipynb_checkpoints/
 run_logs
-*.pyc*
+__pycache__/
+*.pyc
