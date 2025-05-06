@@ -103,6 +103,9 @@
     <light mode="targetbodycom" target="right/gripper_link" pos=".5 .7 2.5" cutoff="55"/>
     <camera name="teleoperator_pov" pos="0 -1.354 0.685" xyaxes="1 0 0 0 0.2 .8"/>
     <camera name="collaborator_pov" pos="0 1.5 0.8" xyaxes="-1 0 0 0 -0.2 .8"/>
+    <camera name="top_down_cam"
+        pos="0 -0.16 0.5"
+        quat="0.707 0 0 0.707" />
      <body name="sink" pos="0 0 0.1" quat="0.7071 1 0 0" >
                 <geom 
                   type="mesh" 
@@ -111,9 +114,15 @@
                   contype="0" 
                   conaffinity="0" 
                   material="stainless_steel" />
-        <body name="plate" pos="0 -0.16 0.15">
-          <geom name="plate_geom" type="cylinder" size="0.1 0.005" rgba="1 1 1 1"/>
-        </body>
+                  <body name="plate" pos="0 -0.25 0.25">
+                      <geom name="plate_geom"
+                          type="cylinder"
+                          size="0.1 0.005"
+                          rgba="0.6 0.3 0.1 1"
+                          quat="0 0 0.7071 0.7071"/>
+                        <site name="plate_center" pos="0 0 0" size="0.005" rgba="0 1 0 1" type="sphere"/>
+                  </body>
+
     </body>
     <body name="left/base_link" childclass="vx300s" pos="-0.469 -0.019 0.02">
       <inertial pos="-0.0534774 -0.000562575 0.0205961" quat="-0.00292324 0.712517 0.00480387 0.701633" mass="0.969034"
