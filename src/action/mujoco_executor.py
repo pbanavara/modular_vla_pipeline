@@ -62,7 +62,6 @@ class MuJoCoExecutor:
         for step in trajectory:
             pos = np.array(step["position"])
             rot = np.array(step["rotation"])
-
             # Your IK solver here
             qpos = self.solve_ik(gripper, arm_joints, pos, rot)
             self.data.qpos[: len(qpos)] = qpos
@@ -72,95 +71,70 @@ class MuJoCoExecutor:
                 mujoco.mj_step(self.model, self.data)
 
     def solve_ik(self, gripper_site, gripper_joints, target_pos, target_rot):
-        """A simple inverse kinematics solver which minimizes the error between the current and target position.
+        """
+        Inverse kinematics solver using L-BFGS-B to minimize position and optional rotation error.
 
         Args:
-            model (_type_): _description_
-            site_name (_type_): _description_
-            data (_type_): _description_
-            gripper (_type_): _description_
-            target_pos (_type_): _description_
-            target_rot (_type_): _description_
+            gripper_site (str): Name of the end-effector site in the MuJoCo model.
+            gripper_joints (list): List of joint names controlling the arm.
+            target_pos (np.ndarray): Desired XYZ position in world coordinates.
+            target_rot (np.ndarray or None): Desired Euler XYZ rotation in radians (or None for position-only IK).
 
         Returns:
-            _type_: _description_
+            np.ndarray: Optimal joint angles for the given target.
         """
-        site_id = mujoco.mj_name2id(self.model, 
-                                    mujoco.mjtObj.mjOBJ_SITE, gripper_site)
-        
-        # Get the joint indices for the right arm; assume right_arm_joints is defined externally
+        site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper_site)
         joint_ids = [self.model.joint(name).qposadr for name in gripper_joints]
 
         def fk(qpos):
-            # Save original qpos to avoid side effects in each evaluation
             original_qpos = self.data.qpos.copy()
-            # Update the joint positions for our right arm
             for i, j in enumerate(joint_ids):
                 self.data.qpos[j] = qpos[i]
             mujoco.mj_forward(self.model, self.data)
-            # Copy the computed end-effector position (to avoid later changes)
-            # Restore the original qpos
-            self.data.qpos[:] = original_qpos
+
             pos = self.data.site_xpos[site_id].copy()
-            rot = (
-                self.data.site_xmat[site_id].reshape(3, 3).copy()
-                if target_rot is not None
-                else None
-            )
-            return pos, rot
+            if target_rot is not None:
+                rot_mat = self.data.site_xmat[site_id].reshape(3, 3).copy()
+                rot_euler = R.from_matrix(rot_mat).as_euler('xyz')
+            else:
+                rot_euler = None
+
+            self.data.qpos[:] = original_qpos  # restore original state
+            return pos, rot_euler
 
         def rotation_error(rot_vec, target_vec):
             R1 = R.from_euler('xyz', rot_vec).as_matrix()
             R2 = R.from_euler('xyz', target_vec).as_matrix()
-            R_err = R1.T @ R2  # relative rotation
-            # Compute angle error (there are various equivalent formulations)
+            R_err = R1.T @ R2
             angle = np.arccos(np.clip((np.trace(R_err) - 1) / 2, -1.0, 1.0))
             return angle
 
         def cost_fn(qpos):
             pos, rot = fk(qpos)
             pos_error = np.linalg.norm(pos - target_pos)
-            if target_rot is not None:
+            if target_rot is not None and rot is not None:
                 rot_error = rotation_error(rot, target_rot)
-                self.logger.info((f"pos_error: {pos_error}, rot_error: {rot_error}"))
-                return float(pos_error + 0.5 * np.sum(rot_error)/len(rot_error))
+                self.logger.info(f"Cost function pos_error: {pos_error:.4f}, rot_error: {rot_error:.4f}")
+                return float(pos_error + 0.5 * rot_error)
+            else:
+                self.logger.info(f"Cost function pos_error: {pos_error:.4f} (rotation not used)")
+                return float(pos_error)
 
-            return float(pos_error)
-            
+        q_init = np.array([self.data.qpos[j] for j in joint_ids], 
+                          dtype=float).flatten()
+        self.logger.info(f"Initial guess: {q_init.shape}")
+        bounds = [
+            tuple(self.model.jnt_range[self.model.joint(name).id])
+            for name in gripper_joints
+        ]
 
-        # Prepare initial guess as a flat 1D array of floats
-        q_init = np.array([float(self.data.qpos[j]) for j in joint_ids]).flatten()
-        bounds = []
-        for i, j in enumerate(joint_ids):
-            bounds.append(
-                (
-                    self.model.jnt_range[self.model.joint(gripper_joints[i]).id, 0],
-                    self.model.jnt_range[self.model.joint(gripper_joints[i]).id, 1],
-                )
-            )
         result = minimize(cost_fn, q_init, method="L-BFGS-B", bounds=bounds)
-        return result.x  # optimal joint angles
 
-    def run(self):
-        with mujoco.viewer.launch_passive(self.model, self.data) as viewer:
-            for action in self.plan:
-                print(f">>> {action['action']} with {action['gripper']}")
-                if action["trajectory"]:
-                    if action["gripper"] == "right": #Robot specific definition
-                        self.move_gripper_to("right_gripper_site", 
-                                             self.right_arm_joints,
-                                             action["trajectory"])
-                    elif action["gripper"] == "left": #Robot specific definition
-                        self.move_gripper_to("left_gripper_site", 
-                                             self.left_arm_joints,
-                                             action["trajectory"])
-                    
-                else:
-                    print("No trajectory — skipping")
-                mujoco.mj_step(self.model, self.data)
-                viewer.sync()
-                # Optional: pause for interaction or review
-                time.sleep(0.5)
+        if not result.success:
+            raise RuntimeError(f"IK solver failed: {result.message}")
+        self.logger.info(f"IK solver succeeded: {result.message}")
+        return result.x
+
 
     def project_to_point_cloud(
         self, contour: np.ndarray, Z: float, fx: float, fy: float, cx: float, cy: float
@@ -195,47 +169,26 @@ class MuJoCoExecutor:
 
         return fx, fy, cx, cy
 
-if __name__ == "__main__":
-    # TODO : Pipelinee for generating the action plan
-    # First get the image from the camera which is the teleeoperator image
-    # Next get the mask and the contours from the image
-    # Next get the 3D co-ordinate of the object from the 3D model
-    # pass this to the LLM Planner to get the action file
-    # Next run the action file - Executor.run()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--action_file", type=str, required=True)
-    parser.add_argument("--model_file", type=str, required=True)
-    args = parser.parse_args()
-    IMAGE_PATH = (
-        "/Users/pbanavara/dev/inference/yolo_seg_clip/test_image/teleoperator_view.png"
-    )
-    SAM_CHECKPOINT = "/Users/pbanavara/Downloads/sam_vit_b_01ec64.pth"
-    MODEL_TYPE = "vit_b"
-    TEXT_PROMPTS = [
-        "a transparent cylindrical 8 oz drinking glass",
-        "a transparent cylindrical 12 oz drinking glass",
-        "a transparent conical 12 oz glass",
-        "a plate",
-        "a transparent 16 oz cylindrical glass",
-        "a ceramic coffee mug with a handle",
-        "a stainless steel saucepan",
-        "a pressure cooker with black handles",
-        "a kitchen sink",
-    ]
-
-    device = (
-        "cuda"
-        if torch.cuda.is_available()
-        else "mps"
-        if torch.backends.mps.is_available()
-        else "cpu"
-    )
-    print(f"Using device: {device}")
-
-    segmentation = SAMSegmentation(SAM_CHECKPOINT, MODEL_TYPE, device)
-
-    image_bgr = cv2.imread(IMAGE_PATH)
-    masks, _ = segmentation.predict(image_bgr, TEXT_PROMPTS)
-    contours = segmentation.classify_masks(masks, image_bgr, TEXT_PROMPTS)
-    executor = MuJoCoExecutor(args.model_file, args.action_file)
-    executor.run()
+    def run(self):
+        with mujoco.viewer.launch_passive(self.model, self.data) as viewer:
+            for action in self.plan:
+                arm = action.get("arm", "right")
+                if action["trajectory"]:
+                    if action["action"] == "move_to_pose": #Robot specific definition
+                        if arm == "right": #Robot specific definition
+                            self.move_gripper_to("right_gripper_site", 
+                                             self.right_arm_joints,
+                                             action["trajectory"])
+                        else:
+                            self.move_gripper_to("left_gripper_site", 
+                                             self.left_arm_joints,
+                                             action["trajectory"])
+                    
+                else:
+                    self.logger.info("No trajectory — skipping")
+                mujoco.mj_step(self.model, self.data)
+                viewer.sync()
+                # Optional: pause for interaction or review
+                time.sleep(0.2)
+            while viewer.is_running():
+                viewer.sync()
