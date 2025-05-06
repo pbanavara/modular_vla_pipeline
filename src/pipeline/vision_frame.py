@@ -90,9 +90,41 @@ class VisionFrame:
         Project 2D pixel centroid + estimated depth into 3D camera-space coordinates.
         Returns [X, Y, Z] in meters.
         """
+        self.logger.info(f"Projecting pixel ({cx_px}, {cy_px}) with Z={Z} to ")
+        self.logger.info(f"Projecting pixel ({self.cx}, {self.cy}) with Z={Z} to ")
         X = (cx_px - self.cx) * Z / self.fx
         Y = (cy_px - self.cy) * Z / self.fy
         return np.array([X, Y, Z])
+    
+    def project_pixel_to_world(self, u, v, z):
+        # Step 1: Get intrinsics from MuJoCo
+        fovy_deg = self.model.cam_fovy[self.cam_id]
+        
+        # Intrinsics
+        fy = 0.5 * self.height / np.tan(0.5 * np.deg2rad(fovy_deg))
+        fx = fy  # assume square pixels
+        cx = self.width / 2
+        cy = self.width / 2
+
+        # Step 2: Project into camera frame
+        x = (u - cx) * z / fx
+        y = (v - cy) * z / fy
+        camera_point = np.array([x, y, z, 1.0])  # homogeneous
+
+        # Step 3: Get camera extrinsics from MuJoCo
+        cam_pos = self.model.cam_pos[self.cam_id]         # (3,)
+        cam_mat = self.model.cam_mat0[self.cam_id].reshape(3, 3)  # 3x3 rotation
+        self.logger.info(f"cam_pos: {cam_pos}")
+        self.logger.info(f"cam_mat: {cam_mat}")
+
+        # Convert to 4x4 transform
+        T = np.eye(4)
+        T[:3, :3] = cam_mat.T  # transpose: MuJoCo uses row-major
+        T[:3, 3] = cam_pos
+
+        # Step 4: Transform to world frame
+        world_point = T @ camera_point
+        return world_point[:3]  # strip homogeneous dimension
 
 
 
