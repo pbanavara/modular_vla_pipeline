@@ -74,7 +74,7 @@ def run_pipeline():
 
     logger.info("Step 1: Capturing image")
     capture = camera_capture.CameraCapture(model_path=str(mujoco_model_path))
-    image = capture.capture_image("teleoperator_pov")
+    image = capture.capture_image("top_down_cam")
     image_bgr = np.array(image)
 
     logger.info("Step 2: Classifying and segmenting image")
@@ -94,9 +94,15 @@ def run_pipeline():
             break
         mapped_object_name = map_model_detections(object["name"])
         frame = VisionFrame(str(mujoco_model_path), 
-                            "teleoperator_pov", image, (640, 480), mapped_object_name)
+                            "top_down_cam", image, (640, 480), mapped_object_name)
         Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
-        world_coords = frame.project_centroid_to_3d(cx_px, cy_py, Z)
+
+        logger.info(f"Estimated depth: {Z}")
+        logger.info(f"Centroid: {cx_px}, {cy_py}")
+
+        #world_coords = frame.project_centroid_to_3d(cx_px, cy_py, Z)
+        world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
+
         logger.info(f"World coordinates: {world_coords}")
 
         logger.info("Step 3: Generating plan")
@@ -119,8 +125,9 @@ def run_pipeline():
             planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
             plan = planner.build_action_plan(task, 
                                          perception_output, known_positions)
+            plan = json.loads(plan)
             logger.info(f"Generated plan: {plan}")
-            planner.save_plan(plan, "plan.json")
+            planner.save_plan(json.dumps(plan), "plan.json")
         else:
             with open (plan_json_path, "r") as f:
                 plan = json.load(f)
