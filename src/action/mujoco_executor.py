@@ -31,8 +31,8 @@ class MuJoCoExecutor:
             self.joint_names.append(name)
 
         # --- Joint groupings ---
-        self.left_arm_joints = [name for name in self.joint_names if "left" in name]
-        self.right_arm_joints = [name for name in self.joint_names if "right" in name]
+        self.left_arm_joints = [name for name in self.joint_names if name.startswith("left/")]
+        self.right_arm_joints = [name for name in self.joint_names if name.startswith("right/")]
 
         self.left_joint_ids = [self.model.joint(name).qposadr 
                                for name in self.left_arm_joints]
@@ -57,18 +57,36 @@ class MuJoCoExecutor:
         return smooth_traj
 
 
-    def move_gripper_to(self, gripper: str, arm_joints: list, trajectory: list):
-        #trajectory = self.interpolate_trajectory(trajectory, num_points=50)
+    def move_gripper_to(self, gripper: str, 
+                        arm_joints: list, 
+                        trajectory: list,
+                        viewer):
+        trajectory = self.interpolate_trajectory(trajectory, num_points=50)
+        self.logger.info(f"left_arm_joints = {self.left_arm_joints}")
+
         for step in trajectory:
             pos = np.array(step["position"])
             rot = np.array(step["rotation"])
             # Your IK solver here
-            qpos = self.solve_ik(gripper, arm_joints, pos, rot)
-            self.data.qpos[: len(qpos)] = qpos
-            mujoco.mj_forward(self.model, self.data)
+            original_qpos = self.data.qpos.copy()
 
-            for _ in range(20):  # render multiple frames to simulate motion
-                mujoco.mj_step(self.model, self.data)
+            result = self.solve_ik(gripper, arm_joints, pos, rot)
+            #self.data.qpos[: len(qpos)] = qpos
+            for i, joint_name in enumerate(arm_joints):
+                joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
+                qpos_index = self.model.jnt_qposadr[joint_id]
+                self.data.qpos[qpos_index] = result[i]
+            # 👇 Freeze the rest (unchanged)
+            for j in range(len(self.data.qpos)):
+                if j not in [self.model.jnt_qposadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)] for name in arm_joints]:
+                    self.data.qpos[j] = original_qpos[j]
+            mujoco.mj_forward(self.model, self.data)
+        
+        for _ in range(100):  # or 200 for slower, smoother movement
+            mujoco.mj_step(self.model, self.data)
+            viewer.sync()
+            time.sleep(0.01)
+
 
     def solve_ik(self, gripper_site, gripper_joints, target_pos, target_rot):
         """
@@ -83,23 +101,25 @@ class MuJoCoExecutor:
         Returns:
             np.ndarray: Optimal joint angles for the given target.
         """
+        # TODO: REmove this target_rot = None
+        target_rot = None
         site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper_site)
-        joint_ids = [self.model.joint(name).qposadr for name in gripper_joints]
-
+        joint_ids = [int(self.model.joint(name).qposadr) for name in gripper_joints]
         def fk(qpos):
-            original_qpos = self.data.qpos.copy()
+            # Create an isolated copy of data
+            temp_data = mujoco.MjData(self.model)
+            temp_data.qpos[:] = self.data.qpos[:]  # start with current sim state
+
             for i, j in enumerate(joint_ids):
-                self.data.qpos[j] = qpos[i]
-            mujoco.mj_forward(self.model, self.data)
+                temp_data.qpos[j] = qpos[i]
 
-            pos = self.data.site_xpos[site_id].copy()
+            mujoco.mj_forward(self.model, temp_data)
+
+            pos = temp_data.site_xpos[site_id].copy()
+            rot_euler = None
             if target_rot is not None:
-                rot_mat = self.data.site_xmat[site_id].reshape(3, 3).copy()
-                rot_euler = R.from_matrix(rot_mat).as_euler('xyz')
-            else:
-                rot_euler = None
-
-            self.data.qpos[:] = original_qpos  # restore original state
+                rot_mat = temp_data.site_xmat[site_id].reshape(3, 3).copy()
+                rot_euler = R.from_matrix(rot_mat).as_euler("xyz")
             return pos, rot_euler
 
         def rotation_error(rot_vec, target_vec):
@@ -114,25 +134,24 @@ class MuJoCoExecutor:
             pos_error = np.linalg.norm(pos - target_pos)
             if target_rot is not None and rot is not None:
                 rot_error = rotation_error(rot, target_rot)
-                self.logger.info(f"Cost function pos_error: {pos_error:.4f}, rot_error: {rot_error:.4f}")
                 return float(pos_error + 0.5 * rot_error)
             else:
-                self.logger.info(f"Cost function pos_error: {pos_error:.4f} (rotation not used)")
                 return float(pos_error)
 
         q_init = np.array([self.data.qpos[j] for j in joint_ids], 
                           dtype=float).flatten()
-        self.logger.info(f"Initial guess: {q_init.shape}")
         bounds = [
             tuple(self.model.jnt_range[self.model.joint(name).id])
             for name in gripper_joints
         ]
-
+        self.logger.info(f"IK target position: {target_pos}")
+        self.logger.info(f"IK target rotation: {target_rot}")
+        self.logger.info(f"Initial guess (q_init): {q_init}")
+        self.logger.info(f"Joint bounds: {bounds}")
         result = minimize(cost_fn, q_init, method="L-BFGS-B", bounds=bounds)
 
         if not result.success:
             raise RuntimeError(f"IK solver failed: {result.message}")
-        self.logger.info(f"IK solver succeeded: {result.message}")
         return result.x
 
 
@@ -168,27 +187,50 @@ class MuJoCoExecutor:
         cy = height / 2
 
         return fx, fy, cx, cy
+    
+    def extract_markers_from_plan(self):
+        """Extracts XYZ positions from the plan into a marker list."""
+        self.markers = []
+        for action in self.plan:
+            for step in action.get("trajectory", []):
+                pos = step["position"]
+                self.markers.append(np.array(pos, dtype=float))
+
+    def render_callback(self, viewer):
+        """Custom callback that adds markers to the MuJoCo viewer."""
+        viewer.user_overlay.clear()
+        self.logger.info(f"Markers in render: {self.markers}")
+        for i, pos in enumerate(self.markers):
+            viewer.add_marker(
+                pos=pos,
+                size=[0.1, 0.1, 0.1],     # small sphere
+                rgba=[1, 0, 0, 1],           # red color
+                label=f"waypoint {i}",
+                type=mujoco.mjtGeom.mjGEOM_SPHERE,
+            )
 
     def run(self):
-        with mujoco.viewer.launch_passive(self.model, self.data) as viewer:
+        self.extract_markers_from_plan()
+        self.logger.info(f"Markers outside render: {self.markers}")
+        with mujoco.viewer.launch_passive(
+                self.model, self.data 
+        ) as viewer:
+            viewer.user_render_callback = self.render_callback
+
             for action in self.plan:
-                arm = action.get("arm", "right")
+                arm = action.get("arm", "left")
                 if action["trajectory"]:
                     if action["action"] == "move_to_pose": #Robot specific definition
                         if arm == "right": #Robot specific definition
-                            self.move_gripper_to("right_gripper_site", 
+                            self.move_gripper_to("right/gripper", 
                                              self.right_arm_joints,
-                                             action["trajectory"])
+                                             action["trajectory"], viewer)
                         else:
-                            self.move_gripper_to("left_gripper_site", 
+                            self.move_gripper_to("left/gripper", 
                                              self.left_arm_joints,
-                                             action["trajectory"])
+                                             action["trajectory"], viewer)
                     
                 else:
                     self.logger.info("No trajectory — skipping")
-                mujoco.mj_step(self.model, self.data)
-                viewer.sync()
-                # Optional: pause for interaction or review
-                time.sleep(0.2)
             while viewer.is_running():
                 viewer.sync()
