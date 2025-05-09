@@ -5,7 +5,7 @@ import numpy as np
 from log.setup_logger import setup_logger
 from perception.capture import camera_capture
 from perception.classification_segmentation.segmentation_image import SAMSegmentation
-from planning.planner_llm import PlannerLLM 
+from planning.planner_llm import PlannerLLM
 from action.mujoco_executor  import MuJoCoExecutor
 from pipeline.vision_frame import VisionFrame
 from pipeline import cache_helper
@@ -55,7 +55,7 @@ def map_model_detections(detected_object_name: str):
     else:
         raise  ValueError(f"No mapping for detected object: {detected_object_name}")
 
-def get_resolved_path(given_path: str) -> str:
+def get_resolved_path(given_path: Path) -> str:
     # Get path to current file's directory
     current_dir = Path(__file__).parent
 
@@ -81,8 +81,8 @@ def run_pipeline():
     segmentation = build_sam_segmentation()
     masks, scores = segmentation.predict(image_bgr)
 
-    objects_with_contours = segmentation.classify_masks(masks, 
-                                                        image_bgr, 
+    objects_with_contours = segmentation.classify_masks(masks,
+                                                        image_bgr,
                                                         get_text_prompts())
 
     logger.info(f"Detected objects: {objects_with_contours}")
@@ -93,7 +93,7 @@ def run_pipeline():
             logger.info(f"Model file does not exist: {mujoco_model_path}")
             break
         mapped_object_name = map_model_detections(object["name"])
-        frame = VisionFrame(str(mujoco_model_path), 
+        frame = VisionFrame(str(mujoco_model_path),
                             "top_down_cam", image, (640, 480), mapped_object_name)
         Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
 
@@ -102,16 +102,15 @@ def run_pipeline():
 
         #world_coords = frame.project_centroid_to_3d(cx_px, cy_py, Z)
         world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
-
         logger.info(f"World coordinates: {world_coords}")
 
         logger.info("Step 3: Generating plan")
-        task = "Clean the dirty plate"
+        task = "Move the left arm to grab the plate in the sink"
         perception_output = [
-            {"name": mapped_object_name, "labels": ["dirty", "food"]},
+            {"name": mapped_object_name, "labels": ["plate"]},
         ]
         known_positions = {
-            mapped_object_name: world_coords 
+            mapped_object_name: world_coords
         }
 
         plan_json_path = str(get_resolved_path("../../plan.json"))
@@ -120,10 +119,10 @@ def run_pipeline():
             aloha_yaml_path = str(get_resolved_path("../planning/aloha.yaml"))
             if not os.path.exists(aloha_yaml_path):
                 logger.info(f"aloha yaml file does not exist: {aloha_yaml_path}")
-                break 
+                break
             logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
             planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
-            plan = planner.build_action_plan(task, 
+            plan = planner.build_action_plan(task,
                                          perception_output, known_positions)
             plan = json.loads(plan)
             logger.info(f"Generated plan: {plan}")

@@ -28,7 +28,7 @@
 
   <default>
     <default class="vx300s">
-      <joint axis="0 1 0" actuatorfrcrange="-35 35"/>
+      <joint axis="0 0 1" actuatorfrcrange="-35 35"/>
       <site group="4"/>
       <default class="waist">
         <joint axis="0 0 1" range="-3.14158 3.14158" damping="5.76"/>
@@ -124,7 +124,7 @@
                   </body>
 
     </body>
-    <body name="left/base_link" childclass="vx300s" pos="-0.469 -0.019 0.02">
+    <body name="left/base_link" childclass="vx300s" pos="0.469 -0.45 0.00" quat= "0 0 0 1">
       <inertial pos="-0.0534774 -0.000562575 0.0205961" quat="-0.00292324 0.712517 0.00480387 0.701633" mass="0.969034"
         diaginertia="0.0071633 0.00602451 0.00169819"/>
       <geom quat="1 0 0 1" class="visual" mesh="vx300s_1_base"/>
@@ -212,7 +212,7 @@
       </body>
     </body>
 
-    <body name="right/base_link" childclass="vx300s" pos="0.469 -0.019 0.02" quat="0 0 0 1">
+    <body name="right/base_link" childclass="vx300s" pos="0.469 0.45 0.10" quat="0 0 0 1">
       <inertial pos="-0.0534774 -0.000562575 0.0205961" quat="-0.00292324 0.712517 0.00480387 0.701633" mass="0.969034"
         diaginertia="0.0071633 0.00602451 0.00169819"/>
       <geom quat="1 0 0 1" class="visual" mesh="vx300s_1_base"/>
