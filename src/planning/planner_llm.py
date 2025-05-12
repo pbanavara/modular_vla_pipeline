@@ -26,6 +26,7 @@ class PlannerLLM:
 
             Critical Requirements:
             - Every trajectory MUST contain multiple waypoints (minimum 2-3 per motion)
+            -- Every trajectory must not be stateless meaning, the trajectories should culminate in the final position for the arm.
             - Approach and grasp motions require at least 3-4 waypoints for smoothness
             - All waypoints must have valid position and rotation values
             - Trajectories must enable smooth, continuous motion through all waypoints

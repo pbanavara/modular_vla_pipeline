@@ -99,11 +99,8 @@ def run_pipeline():
 
         logger.info(f"Estimated depth: {Z}")
         logger.info(f"Centroid: {cx_px}, {cy_py}")
-
-        #world_coords = frame.project_centroid_to_3d(cx_px, cy_py, Z)
         world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
         logger.info(f"World coordinates: {world_coords}")
-
         logger.info("Step 3: Generating plan")
         task = "Move the left arm to grab the plate in the sink"
         perception_output = [
