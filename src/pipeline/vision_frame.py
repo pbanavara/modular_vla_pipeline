@@ -23,7 +23,10 @@ class VisionFrame:
         self.width, self.height = image_shape
         self.logger = setup_logger("vision_frame")
         self.fx, self.fy, self.cx, self.cy = self._compute_intrinsics()
-        self.object_dimensions = self._extract_object_dimensions(object_name)
+        #self.object_dimensions = self._extract_object_dimensions(object_name)
+        self.object_dimensions = {
+            "plate_geom":  0.20,  # or width/height if rectangular
+        }
 
     def _compute_intrinsics(self):
         fovy_rad = np.deg2rad(self.model.cam_fovy[self.cam_id])

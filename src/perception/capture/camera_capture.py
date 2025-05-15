@@ -1,5 +1,7 @@
 import mujoco
 from mujoco import viewer
+import mujoco
+import numpy as np
 from PIL import Image
 
 class CameraCapture:
@@ -9,8 +11,10 @@ class CameraCapture:
         self.renderer = mujoco.Renderer(self.model, height=480, width=640)
 
     def capture_image(self, camera_name):
+        mujoco.mj_forward(self.model, self.data)
         self.renderer.update_scene(self.data, camera=camera_name)
         rgb = self.renderer.render()
+        # Call mjforward
         return Image.fromarray(rgb)
     
     def save_image(self, image: Image, filename):

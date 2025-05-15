@@ -10,8 +10,12 @@ from action.mujoco_executor  import MuJoCoExecutor
 from pipeline.vision_frame import VisionFrame
 from pipeline import cache_helper
 import json
+import matplotlib.pyplot as plt
+from perception.classification_segmentation.owl_vit import OwlVitDetector
+from PIL import Image, ImageOps
 
 logger = setup_logger()
+CAMERA_NAME = "teleoperator_pov"
 
 def build_sam_segmentation():
     SAM_CHECKPOINT = "/Users/pbanavara/Downloads/sam_vit_b_01ec64.pth"
@@ -58,7 +62,6 @@ def map_model_detections(detected_object_name: str):
 def get_resolved_path(given_path: Path) -> str:
     # Get path to current file's directory
     current_dir = Path(__file__).parent
-
     # Resolve relative path from current file
     model_path = (current_dir / given_path).resolve()
     return model_path
@@ -74,18 +77,34 @@ def run_pipeline():
 
     logger.info("Step 1: Capturing image")
     capture = camera_capture.CameraCapture(model_path=str(mujoco_model_path))
-    image = capture.capture_image("top_down_cam")
-    image_bgr = np.array(image)
+    image = capture.capture_image(CAMERA_NAME)
+    image = np.array(image).astype(np.float32) / 255.0
+    image = Image.fromarray((image * 255).astype(np.uint8)).convert("RGB")
 
+    image = ImageOps.expand(image, border=5, fill='white')
+    image = image.resize((495, 374))
+
+    logger.info("Getting bounding boxes")
+    detector = OwlVitDetector()
+    prompts = [
+        "a white ceramic plate", "a kitchen dish", "a plate inside a sink", "a shallow white bowl", "a porcelain plate with a rim"
+    ]
+    image, results = detector.detect_objects(
+        image,prompts
+    )
+    logger.info(f"Detected objects: {results}")
+    box_tensor = results["boxes"][0]  # tensor([x0, y0, x1, y1])
+    box_np = box_tensor.cpu().numpy().astype(np.float32).reshape(1, 4)
+    image_np = np.array(image)
     logger.info("Step 2: Classifying and segmenting image")
     segmentation = build_sam_segmentation()
-    masks, scores = segmentation.predict(image_bgr)
+    masks, scores = segmentation.predict(image_np, box_np=box_np)
 
     objects_with_contours = segmentation.classify_masks(masks,
-                                                        image_bgr,
+                                                        image_np,
                                                         get_text_prompts())
 
-    logger.info(f"Detected objects: {objects_with_contours}")
+    logger.info(f"Detected object contours: {objects_with_contours}")
     for object in objects_with_contours:
         logger.info(f"Object: {object}")
         cx_px, cy_py = object["center"]
@@ -94,7 +113,7 @@ def run_pipeline():
             break
         mapped_object_name = map_model_detections(object["name"])
         frame = VisionFrame(str(mujoco_model_path),
-                            "top_down_cam", image, (640, 480), mapped_object_name)
+                            CAMERA_NAME, image, (640, 480), mapped_object_name)
         Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
 
         logger.info(f"Estimated depth: {Z}")

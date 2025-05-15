@@ -18,23 +18,33 @@ class SAMSegmentation:
         self.device = device
         self.logger = setup_logger("SAMSegmentation")
 
-    def predict(self, image_bgr):
-        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    def predict(self, image_rgb, box_np = None):
         predictor = SamPredictor(self.sam)
         predictor.set_image(image_rgb)
 
-        height, width = image_rgb.shape[:2]
-        step = 150
-        grid_points = [
-            [x, y] for y in range(0, height, step) for x in range(0, width, step)
-        ]
+        if box_np is not None:
+            input_boxes = box_np  # must be (N, 4), float32
+            input_boxes = input_boxes.astype(np.float32)
 
-        input_points = np.array(grid_points)
-        input_labels = np.ones(len(grid_points))
+            masks, scores, _ = predictor.predict(
+                box=input_boxes,
+                multimask_output=False
+            )
+        else:
+        # fallback to default grid-based point sampling
+            height, width = image_rgb.shape[:2]
+            step = 150
+            grid_points = [
+                [x, y] for y in range(0, height, step) for x in range(0, width, step)
+            ]
+            input_points = np.array(grid_points)
+            input_labels = np.ones(len(grid_points))
 
-        masks, scores, _ = predictor.predict(
-            point_coords=input_points, point_labels=input_labels, multimask_output=False
-        )
+            masks, scores, _ = predictor.predict(
+                point_coords=input_points,
+                point_labels=input_labels,
+                multimask_output=False
+            )
         return masks, scores
 
     def classify_masks(self, masks, image_bgr, text_prompts):

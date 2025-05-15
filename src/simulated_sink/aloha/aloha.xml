@@ -20,10 +20,15 @@
     <mesh file="d405_solid.stl"/>
     <mesh name = "sink_mesh" file = "/Users/pbanavara/dev/modular_vla_pipeline/src/simulated_sink/kitchen_sink.obj" scale = "1.611 1.324 1.366"/>
     <material name="stainless_steel"
-            rgba="0.6 0.6 0.65 1"
-            specular="0.4"
-            shininess="1.0"
+            rgba="1 1 1 1"
+            specular="0.7"
+            shininess="0.95"
             reflectance="0.3"/>
+    <texture name="steel_tex" file="assets/Metal032.png" type="2d" />
+    <material name="steel_mat" texture="steel_tex"
+            specular="0" shininess="0.0" reflectance="0.8"
+            rgba="0 0 0 0" />
+    <mesh name = "plate_mesh" file = "plates.obj" scale="0.1 0.1 0.1" />
   </asset>
 
   <default>
@@ -99,9 +104,13 @@
   </default>
 
   <worldbody>
-    <light mode="targetbodycom" target="left/gripper_link" pos="-.5 .7 2.5" cutoff="55"/>
-    <light mode="targetbodycom" target="right/gripper_link" pos=".5 .7 2.5" cutoff="55"/>
-    <camera name="teleoperator_pov" pos="0 -1.354 0.685" xyaxes="1 0 0 0 0.2 .8"/>
+  <light mode="targetbodycom" target="left/shoulder_link" pos="0 0 -2.5"
+       cutoff="55" specular="0.1 0.1 0.1"/>
+  <light mode="targetbodycom" target="right/shoulder_link" pos="0 -1 -2.5"
+       cutoff="55" specular="0.1 0.1 0.1"/>
+    <camera name="teleoperator_pov" pos="0 -1.854 0.885" xyaxes="1 0 0 0 0.2 .8" />
+    <!-- <camera name="teleoperator_pov_bak" pos="0 -1.854 0.885" xyaxes="1 0 0 0 0.2 .8" quat="0.707 0 0 0.707"/> 
+    -->
     <camera name="collaborator_pov" pos="0 1.5 0.8" xyaxes="-1 0 0 0 -0.2 .8"/>
     <camera name="top_down_cam"
         pos="0 -0.16 0.5"
@@ -114,12 +123,8 @@
                   contype="0" 
                   conaffinity="0" 
                   material="stainless_steel" />
-                  <body name="plate" pos="0 -0.25 0.25">
-                      <geom name="plate_geom"
-                          type="cylinder"
-                          size="0.1 0.005"
-                          rgba="0.6 0.3 0.1 1"
-                          quat="0 0 0.7071 0.7071"/>
+                  <body name="plate" pos="-0.1 -0.25 0.25">
+                       <geom type="mesh" name="plate_geom" mesh="plate_mesh" rgba="1 1 1 1" mass="0.1" />
                         <site name="plate_center" pos="0 0 0" size="0.005" rgba="0 1 0 1" type="sphere"/>
                   </body>
 
