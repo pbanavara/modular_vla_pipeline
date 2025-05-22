@@ -70,6 +70,7 @@ class MuJoCoExecutor:
                     for jid in joint_ids
                 ])
             self.logger.info(f"Sim qpos before solve: {current_sim_qpos} and last action state {self.last_action_state}")
+            mujoco.mj_forward(self.model, self.data)
             q_solution = self.solve_ik(gripper, 
                                        arm_joints, pos, rot, q_init=q_guess)
 
@@ -182,8 +183,14 @@ class MuJoCoExecutor:
                 if action["trajectory"]:
                     if action["action"] == "move_to_pose": 
                         if arm == "right": #Robot specific definition
-                            self.move_through_trajectory("left/gripper", 
-                                             self.left_arm_joints,
+                            qpos_snapshot = np.array([
+                                        self.data.qpos[self.model.jnt_qposadr[
+                                                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+                                                ]] for name in self.right_arm_joints
+                                            ])
+                            print(f"[🚨] QPOS before new action: {qpos_snapshot}")
+                            self.move_through_trajectory("right/gripper", 
+                                             self.right_arm_joints,
                                              action["trajectory"], viewer)
                         else:
                             qpos_snapshot = np.array([

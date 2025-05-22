@@ -132,8 +132,8 @@ def run_pipeline():
         world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
         logger.info(f"World coordinates: {world_coords}")
         input("Press Enter to generate plan...")
+        task = input("Enter the dishwashing task:: ")
         logger.info("Step 3: Generating plan")
-        task = "Move the left arm to grab the plate in the sink"
         perception_output = [
             {"name": mapped_object_name, "labels": ["plate"]},
         ]
