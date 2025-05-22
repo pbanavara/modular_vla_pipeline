@@ -108,7 +108,8 @@
        cutoff="55" specular="0.1 0.1 0.1"/>
   <light mode="targetbodycom" target="right/shoulder_link" pos="0 -1 -2.5"
        cutoff="55" specular="0.1 0.1 0.1"/>
-    <camera name="teleoperator_pov" pos="0 -1.854 0.885" xyaxes="1 0 0 0 0.2 .8" />
+    <camera name="teleoperator_pov"  pos="0 -0.1 0.8"
+        quat="0.707 0 0 0.707" />
     <!-- <camera name="teleoperator_pov_bak" pos="0 -1.854 0.885" xyaxes="1 0 0 0 0.2 .8" quat="0.707 0 0 0.707"/> 
     -->
     <camera name="collaborator_pov" pos="0 1.5 0.8" xyaxes="-1 0 0 0 -0.2 .8"/>

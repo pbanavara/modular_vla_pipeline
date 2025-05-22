@@ -1,7 +1,8 @@
 import numpy as np
 import mujoco
-from PIL import Image
+from scipy.spatial.transform import Rotation as R
 from log.setup_logger import setup_logger
+
 
 class VisionFrame:
     def __init__(
@@ -100,34 +101,31 @@ class VisionFrame:
         return np.array([X, Y, Z])
     
     def project_pixel_to_world(self, u, v, z):
-        # Step 1: Get intrinsics from MuJoCo
+        # Intrinsics from MuJoCo
         fovy_deg = self.model.cam_fovy[self.cam_id]
-        
-        # Intrinsics
         fy = 0.5 * self.height / np.tan(0.5 * np.deg2rad(fovy_deg))
         fx = fy  # assume square pixels
         cx = self.width / 2
-        cy = self.width / 2
+        cy = self.height / 2  # ✅ FIXED
 
-        # Step 2: Project into camera frame
+        # Camera-frame projection
         x = (u - cx) * z / fx
         y = (v - cy) * z / fy
-        camera_point = np.array([x, y, z, 1.0])  # homogeneous
+        camera_point = np.array([x, y, -z])
 
-        # Step 3: Get camera extrinsics from MuJoCo
-        cam_pos = self.model.cam_pos[self.cam_id]         # (3,)
-        cam_mat = self.model.cam_mat0[self.cam_id].reshape(3, 3)  # 3x3 rotation
-        self.logger.info(f"cam_pos: {cam_pos}")
-        self.logger.info(f"cam_mat: {cam_mat}")
+        # Extrinsics
+        cam_pos = self.model.cam_pos[self.cam_id]
+        cam_quat = self.model.cam_quat[self.cam_id]  # [w, x, y, z] in MuJoCo
 
-        # Convert to 4x4 transform
-        T = np.eye(4)
-        T[:3, :3] = cam_mat.T  # transpose: MuJoCo uses row-major
-        T[:3, 3] = cam_pos
+        r = R.from_quat([cam_quat[1], cam_quat[2], cam_quat[3], cam_quat[0]])  # convert to [x, y, z, w]
+        R_c2w = r.as_matrix()
 
-        # Step 4: Transform to world frame
-        world_point = T @ camera_point
-        return world_point[:3]  # strip homogeneous dimension
-
-
-
+        # Step 4: Transform point from camera to world
+        world_point = R_c2w @ camera_point + cam_pos
+        self.logger.info(f"Pixel: u={u}, v={v}, depth z={z}")
+        self.logger.info(f"Camera point (before transform): {camera_point}")
+        self.logger.info(f"Camera pos: {cam_pos}")
+        self.logger.info(f"Camera quat: {cam_quat}")
+        self.logger.info(f"Rotation matrix R_c2w:\n{R_c2w}")
+        self.logger.info(f"World point: {world_point}")
+        return world_point

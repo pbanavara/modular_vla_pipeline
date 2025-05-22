@@ -66,25 +66,32 @@ def get_resolved_path(given_path: Path) -> str:
     model_path = (current_dir / given_path).resolve()
     return model_path
 
+
 def run_pipeline():
     mujoco_model_path = get_resolved_path("../simulated_sink/aloha/aloha.xml")
+    executor = MuJoCoExecutor(str(mujoco_model_path))
     if os.path.exists(mujoco_model_path):
         logger.info(f"MuJoCo model path exists: {mujoco_model_path}")
     else:
         logger.error(f"MuJoCo model path does not exist: {mujoco_model_path}")
         exit(1)
     logger.info("Starting pipeline run")
+    input("Press Enter to start the pipeline...")
+    executor.view_model()
 
     logger.info("Step 1: Capturing image")
     capture = camera_capture.CameraCapture(model_path=str(mujoco_model_path))
     image = capture.capture_image(CAMERA_NAME)
     image = np.array(image).astype(np.float32) / 255.0
     image = Image.fromarray((image * 255).astype(np.uint8)).convert("RGB")
-
     image = ImageOps.expand(image, border=5, fill='white')
     image = image.resize((495, 374))
+    #plt.imshow(image)
+    #plt.show()
+    logger.info(f"Image captured, {image.size}")
 
     logger.info("Getting bounding boxes")
+    input("Press Enter to detect objects...")
     detector = OwlVitDetector()
     prompts = [
         "a white ceramic plate", "a kitchen dish", "a plate inside a sink", "a shallow white bowl", "a porcelain plate with a rim"
@@ -92,19 +99,23 @@ def run_pipeline():
     image, results = detector.detect_objects(
         image,prompts
     )
-    logger.info(f"Detected objects: {results}")
+    logger.info(f"Detected objects: {results} for prompts: {prompts}")
     box_tensor = results["boxes"][0]  # tensor([x0, y0, x1, y1])
     box_np = box_tensor.cpu().numpy().astype(np.float32).reshape(1, 4)
+    # Add bounding box to image and show the same
+    logger.info(f"Bounding box: {box_np}")
     image_np = np.array(image)
     logger.info("Step 2: Classifying and segmenting image")
+    input("Press Enter to segment image...")
     segmentation = build_sam_segmentation()
     masks, scores = segmentation.predict(image_np, box_np=box_np)
 
     objects_with_contours = segmentation.classify_masks(masks,
                                                         image_np,
                                                         get_text_prompts())
+    logger.info("Image segmented")
 
-    logger.info(f"Detected object contours: {objects_with_contours}")
+    input("Press Enter to process segmented objects...")
     for object in objects_with_contours:
         logger.info(f"Object: {object}")
         cx_px, cy_py = object["center"]
@@ -116,10 +127,11 @@ def run_pipeline():
                             CAMERA_NAME, image, (640, 480), mapped_object_name)
         Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
 
-        logger.info(f"Estimated depth: {Z}")
+        logger.info(f"Estimated depth of the object : {object}: {Z}")
         logger.info(f"Centroid: {cx_px}, {cy_py}")
         world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
         logger.info(f"World coordinates: {world_coords}")
+        input("Press Enter to generate plan...")
         logger.info("Step 3: Generating plan")
         task = "Move the left arm to grab the plate in the sink"
         perception_output = [
@@ -139,15 +151,15 @@ def run_pipeline():
             logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
             planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
             plan = planner.build_action_plan(task,
-                                         perception_output, known_positions)
+                                          perception_output, known_positions)
             plan = json.loads(plan)
             logger.info(f"Generated plan: {plan}")
             planner.save_plan(json.dumps(plan), "plan.json")
         else:
-            with open (plan_json_path, "r") as f:
+            with open(plan_json_path, "r") as f:
                 plan = json.load(f)
         logger.info("Step 4: Executing actions")
-        executor = MuJoCoExecutor(str(mujoco_model_path), plan)
-        executor.run()
+        input("Press Enter to execute actions...")
+        executor.run(plan=plan)
 
     logger.info("Pipeline completed successfully")

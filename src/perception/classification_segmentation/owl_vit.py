@@ -151,8 +151,9 @@ class OwlVitDetector:
 
         return output_path
 
-
 def main():
+    """Main function to run the object detection script.
+    """
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description="Detect objects in an image using OwlViT"
