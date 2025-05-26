@@ -3,7 +3,7 @@ import time
 import mujoco
 from mujoco import viewer
 import numpy as np
-from utils.utilities import get_resolved_path
+from utils.utilities import get_resolved_path, get_text_prompts
 from log import setup_logger 
 import os
 from pathlib import Path
@@ -39,6 +39,7 @@ class MujocoRealtimeExecutor:
         self.last_action_state = None
         self.left_arm_joints = [name for name in self.joint_names if name.startswith("left/")]
         self.right_arm_joints = [name for name in self.joint_names if name.startswith("right/")]
+        self.text_prompts = get_text_prompts()
         self.logger = setup_logger("MujocoRealtimeExecutor")
 
     def enqueue_action(self, action):
@@ -79,8 +80,7 @@ class MujocoRealtimeExecutor:
         return segmentation
 
     async def segment_and_retrieve_depth(self):
-        self.logger.info("Getting bounding boxes")
-        input("Press Enter to detect objects...")
+        self.logger.info("Capturing image and obtaining bounding boxes")
         detector = OwlVitDetector()
         prompts = [
             "a white ceramic plate",
@@ -103,13 +103,12 @@ class MujocoRealtimeExecutor:
         masks, scores = segmentation.predict(image_np, box_np=box_np)
 
         objects_with_contours = segmentation.classify_masks(
-            masks, image_np, self.get_text_prompts()
+            masks, image_np, self.text_prompts
         )
         self.logger.info("Image segmented")
 
         input("Press Enter to process segmented objects...")
         for object in objects_with_contours:
-            self.logger.info(f"Object: {object}")
             cx_px, cy_py = object["center"]
             if not os.path.exists(self.model_path):
                 self.logger.info(f"Model file does not exist: {self.model_path}")
@@ -120,7 +119,7 @@ class MujocoRealtimeExecutor:
             )
             Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
 
-            self.logger.info(f"Estimated depth of the object : {object}: {Z}")
+            self.logger.info(f"Estimated depth of the object : {Z}")
             self.logger.info(f"Centroid: {cx_px}, {cy_py}")
             world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
             self.logger.info(f"World coordinates: {world_coords}")
@@ -133,40 +132,28 @@ class MujocoRealtimeExecutor:
 
     async def planner_task(self):
         """Async planner that generates a plan."""
-        input("Press Enter to generate plan...")
-        task = input("Enter the dishwashing task:: ")
-        self.logger.info("Step 3: Generating plan")
-        perception_output, known_positions = self.segment_and_retrieve_depth()
-        plan_json_path = str(get_resolved_path("../../plan.json"))
-        if not os.path.exists(plan_json_path):
-            self.logger.info(f"Plan file does not exist: {plan_json_path}")
+        plan_json_path = str(get_resolved_path("../../plans/plan.json"))
+        response = input("Continue with the last generated plan y/n or q to quit: ").strip().lower()
+        if response == "q":
+            exit(0)
+        elif response == "y": 
+            with open(plan_json_path, "r") as f:
+                plan = json.load(f) 
+        else:
+            self.logger.info(f"Creating new plan for task")
+            task = input("Enter the dishwashing task:: ")
+            perception_output, known_positions = await self.segment_and_retrieve_depth()
             aloha_yaml_path = str(get_resolved_path("../planning/aloha.yaml"))
             if not os.path.exists(aloha_yaml_path):
                 self.logger.info(f"aloha yaml file does not exist: {aloha_yaml_path}")
-                break
             self.logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
             planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
             plan = planner.build_action_plan(task, perception_output, known_positions)
-            plan = json.loads(plan)
+            planner.save_plan(plan, plan_json_path)
             self.logger.info(f"Generated plan: {plan}")
-        else:
-            with open(plan_json_path, "r") as f:
-                plan = json.load(f)
+            plan = json.loads(plan)
         self.enqueue_plan(plan)
 
-    def get_text_prompts(self):
-        TEXT_PROMPTS = [
-            "a transparent cylindrical 8 oz drinking glass",
-            "a transparent cylindrical 12 oz drinking glass",
-            "a transparent conical 12 oz glass",
-            "a plate",
-            "a transparent 16 oz cylindrical glass",
-            "a ceramic coffee mug with a handle",
-            "a stainless steel saucepan",
-            "a pressure cooker with black handles",
-            "a kitchen sink",
-        ]
-        return TEXT_PROMPTS
 
     def map_model_detections(self, detected_object_name: str):
         detection_to_model_name = {
@@ -350,20 +337,20 @@ class MujocoRealtimeExecutor:
                 else:
                     self.logger.info("No trajectory — skipping")
                 self.logger.info(f"Completed Action: {action}")
-                # Or update qpos and forward if that's your control mode:
-                # self.data.qpos[:len(action)] = action
-                # mujoco.mj_forward(self.model, self.data)
+                last_action_time = time.time()
                 mujoco.mj_step(self.model, self.data)
+            elif time.time() - last_action_time > 10:
+                self.logger.info("No new actions — exiting simulation loop.")
+                return
             await asyncio.sleep(step_delay)
 
     async def start(self):
         """Starts both planner and sim concurrently."""
         try:
-            await asyncio.gather(self.planner_task(), self.run_simulation())
+             while True:
+                self.logger.info("Running planner...")
+                await self.planner_task()
+                self.logger.info("Running simulation...")
+                await self.run_simulation()
         except asyncio.CancelledError:
             self.logger.info("Shutting down cleanly...")
-
-if __name__ == "__main__":
-    mujoco_model_path = str(get_resolved_path("../simulated_sink/aloha/aloha.xml"))
-    executor = MujocoRealtimeExecutor(mujoco_model_path)
-    asyncio.run(executor.start())

@@ -93,7 +93,6 @@ class SAMSegmentation:
                              "contour": contour,
                              "center": (cx, cy),
                              "mask": mask_resized})
-            self.logger.info(f"Mask Geometry: {cx, cy}, {contour}")
         return contours
 
 

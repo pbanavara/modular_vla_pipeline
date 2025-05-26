@@ -80,6 +80,7 @@ def run_pipeline():
     executor.view_model()
 
     logger.info("Step 1: Capturing image")
+    """
     capture = camera_capture.CameraCapture(model_path=str(mujoco_model_path))
     image = capture.capture_image(CAMERA_NAME)
     image = np.array(image).astype(np.float32) / 255.0
@@ -140,26 +141,26 @@ def run_pipeline():
         known_positions = {
             mapped_object_name: world_coords
         }
-
-        plan_json_path = str(get_resolved_path("../../plan.json"))
-        if not os.path.exists(plan_json_path):
-            logger.info(f"Plan file does not exist: {plan_json_path}")
-            aloha_yaml_path = str(get_resolved_path("../planning/aloha.yaml"))
-            if not os.path.exists(aloha_yaml_path):
-                logger.info(f"aloha yaml file does not exist: {aloha_yaml_path}")
-                break
-            logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
-            planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
-            plan = planner.build_action_plan(task,
-                                          perception_output, known_positions)
-            plan = json.loads(plan)
-            logger.info(f"Generated plan: {plan}")
-            planner.save_plan(json.dumps(plan), "plan.json")
-        else:
-            with open(plan_json_path, "r") as f:
-                plan = json.load(f)
-        logger.info("Step 4: Executing actions")
-        input("Press Enter to execute actions...")
-        executor.run(plan=plan)
+    """
+    plan_json_path = str(get_resolved_path("../../plan.json"))
+    if not os.path.exists(plan_json_path):
+        logger.info(f"Plan file does not exist: {plan_json_path}")
+        aloha_yaml_path = str(get_resolved_path("../planning/aloha.yaml"))
+        if not os.path.exists(aloha_yaml_path):
+            logger.info(f"aloha yaml file does not exist: {aloha_yaml_path}")
+            #break
+        logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
+        planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
+        plan = planner.build_action_plan(task,
+                                        perception_output, known_positions)
+        plan = json.loads(plan)
+        logger.info(f"Generated plan: {plan}")
+        planner.save_plan(json.dumps(plan), "plan.json")
+    else:
+        with open(plan_json_path, "r") as f:
+            plan = json.load(f)
+    logger.info("Step 4: Executing actions")
+    input("Press Enter to execute actions...")
+    executor.run(plan=plan)
 
     logger.info("Pipeline completed successfully")

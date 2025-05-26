@@ -25,8 +25,25 @@ class MuJoCoExecutor:
         self.left_arm_joints = [name for name in self.joint_names if name.startswith("left/")]
         self.right_arm_joints = [name for name in self.joint_names if name.startswith("right/")]
     
+    def show_marker(self, viewer, pos):
+        # Enable wireframe rendering of the entire scene.
+        viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_WIREFRAME] = 1
+        viewer.sync()
+        # Step the physics.
+        mujoco.mj_step(self.model, self.data)
+        viewer.user_scn.ngeom = 1
+        mujoco.mjv_initGeom(
+            viewer.user_scn.geoms[0],
+            type=mujoco.mjtGeom.mjGEOM_SPHERE,
+            size=[0.02, 0, 0],
+            pos=1*np.array(pos),
+            mat=np.eye(3).flatten(),
+            rgba=[1.0, 0.0, 0.0, 1.0]
+        )
+        viewer.user_scn.ngeom = 1
+        viewer.sync()
+    
     def move_through_trajectory(self, gripper, arm_joints, trajectory, viewer):
-
         joint_ids = [mujoco.mj_name2id(self.model, 
                                        mujoco.mjtObj.mjOBJ_JOINT, name)
                     for name in arm_joints]
@@ -52,6 +69,8 @@ class MuJoCoExecutor:
         print("🍽 Plate position:", plate_pos)
         for step in trajectory:
             pos = np.array(step["position"])
+            # Show the position using a marker
+            self.show_marker(viewer, pos)
             #rot = np.array(step["rotation"])
             rot = None 
             self.logger.info(f"Updated persistent joint state: {self.last_action_state}")

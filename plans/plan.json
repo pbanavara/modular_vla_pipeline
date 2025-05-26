@@ -1,0 +1,61 @@
+[
+  {
+    "action": "move_to_pose",
+    "arm": "right",
+    "gripper": "open",
+    "trajectory": [
+      {
+        "position": [0.15, -0.17, -0.26],
+        "rotation": [0, 1.57, 0]
+      },
+      {
+        "position": [0.2, -0.22, -0.36],
+        "rotation": [0, 1.57, 0]
+      }
+    ]
+  },
+  {
+    "action": "move_to_pose", 
+    "arm": "right",
+    "gripper": "open",
+    "trajectory": [
+      {
+        "position": [0.23, -0.25, -0.39],
+        "rotation": [0, 1.57, 0]
+      },
+      {
+        "position": [0.245, -0.26, -0.41],
+        "rotation": [0, 1.57, 0]
+      },
+      {
+        "position": [0.25, -0.265, -0.425],
+        "rotation": [0, 1.57, 0]
+      }
+    ]
+  },
+  {
+    "action": "grasp",
+    "arm": "right",
+    "gripper": "close",
+    "trajectory": []
+  },
+  {
+    "action": "move_to_pose",
+    "arm": "right",
+    "gripper": "close",
+    "trajectory": [
+      {
+        "position": [0.25, -0.265, -0.41],
+        "rotation": [0, 1.57, 0]
+      },
+      {
+        "position": [0.25, -0.27, -0.35],
+        "rotation": [0, 1.57, 0]
+      },
+      {
+        "position": [0.23, -0.25, -0.3],
+        "rotation": [0, 1.57, 0]
+      }
+    ]
+  }
+]
