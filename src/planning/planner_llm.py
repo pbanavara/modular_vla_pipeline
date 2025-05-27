@@ -23,11 +23,12 @@ class PlannerLLM:
             3. Ensure each action is physically feasible given the robot's joint limits and workspace
             4. Generate smooth trajectories with multiple waypoints for each motion
             5. Include precise position and rotation values for every waypoint
+            6. The given waypoints must work with the inverse kinematics functions based on error minimization similar to gradient descent.
 
             Critical Requirements:
-            - Every trajectory MUST contain multiple waypoints (minimum 2-3 per motion)
+            - Every trajectory MUST contain multiple waypoints (minimum 5 to 6 per motion)
             -- Every trajectory must not be stateless meaning, the trajectories should culminate in the final position for the arm.
-            - Approach and grasp motions require at least 3-4 waypoints for smoothness
+            - Approach and grasp motions require at least 4-5 waypoints for smoothness
             - All waypoints must have valid position and rotation values
             - Trajectories must enable smooth, continuous motion through all waypoints
             - Motion planning must respect the robot's physical constraints and limits

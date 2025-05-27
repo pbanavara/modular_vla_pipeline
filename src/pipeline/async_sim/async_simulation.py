@@ -4,6 +4,7 @@ import mujoco
 from mujoco import viewer
 import numpy as np
 from utils.utilities import get_resolved_path, get_text_prompts
+from utils.image_utils import save_bbox_overlay 
 from log import setup_logger 
 import os
 from pathlib import Path
@@ -94,9 +95,11 @@ class MujocoRealtimeExecutor:
         self.logger.info(f"Detected objects: {results} for prompts: {prompts}")
         box_tensor = results["boxes"][0]  # tensor([x0, y0, x1, y1])
         box_np = box_tensor.cpu().numpy().astype(np.float32).reshape(1, 4)
+        box_list = box_np[0].tolist()
         # Add bounding box to image and show the same
         self.logger.info(f"Bounding box: {box_np}")
         image_np = np.array(image)
+        save_bbox_overlay(image_np, box_list, "/tmp/output.jpg")
         self.logger.info("Step 2: Classifying and segmenting image")
         input("Press Enter to segment image...")
         segmentation = self.build_sam_segmentation()
@@ -118,6 +121,7 @@ class MujocoRealtimeExecutor:
                 str(self.model_path), CAMERA_NAME, image, (640, 480), mapped_object_name
             )
             Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
+            Z = Z * 0.4
 
             self.logger.info(f"Estimated depth of the object : {Z}")
             self.logger.info(f"Centroid: {cx_px}, {cy_py}")
@@ -188,23 +192,21 @@ class MujocoRealtimeExecutor:
             self.data.qpos[self.model.jnt_qposadr[jid]]
             for jid in joint_ids
             ], dtype=float)
-        self.logger.info(f"Solving IK for initial state: {q_guess} ")
         # Temporary hack to get the arm to move to the plate
-        plate_site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "plate")
-        plate_pos = self.data.site_xpos[plate_site_id].copy()
-        print("🍽 Plate position:", plate_pos)
         for step in trajectory:
             pos = np.array(step["position"])
+            # TODO These hardcoded placeholders remove
+            #pos = np.array([-0.14999904, - 0.2285476, - 0.3785524]) 
+            pos = np.array([-1.2363652, -0.27473684, 0.96247765])
+            pos = np.array([-0.49454608, -0.16989474, 0.86499106])
+            self.logger.info(
+                f"Current EE pos: {self.data.site_xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper)]}")
+            self.logger.info(f"plate positioon {pos}")
             #rot = np.array(step["rotation"])
-            rot = None 
+            rot = None
             self.logger.info(f"Updated persistent joint state: {self.last_action_state}")
             # Solve from current joint state
             self.logger.info(f"Solving IK for remaining state: {q_guess} ")
-            current_sim_qpos = np.array([
-                self.data.qpos[self.model.jnt_qposadr[jid]]
-                    for jid in joint_ids
-                ])
-            self.logger.info(f"Sim qpos before solve: {current_sim_qpos} and last action state {self.last_action_state}")
             mujoco.mj_forward(self.model, self.data)
             q_solution = self.solve_ik(gripper, 
                                        arm_joints, pos, rot, q_init=q_guess)
@@ -217,7 +219,6 @@ class MujocoRealtimeExecutor:
                 actuator_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name)
                 self.data.ctrl[actuator_id] = q_solution[i]
 
-            print("Actuator ctrl before stepping:", self.data.ctrl[:])
             mujoco.mj_forward(self.model, self.data)
 
             # Simulate to see movement
@@ -238,6 +239,11 @@ class MujocoRealtimeExecutor:
             #Persist joint state
             q_guess = q_solution.copy()
             self.last_action_state = q_solution.copy()
+            self.logger.info(f"IK solved for position {pos}")
+            self.logger.info(
+                f"Current EE pos after solve: {self.data.site_xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper)]}"
+            )
+
             viewer.sync()
 
     def solve_ik(self, gripper_site, 

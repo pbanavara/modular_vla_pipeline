@@ -85,7 +85,19 @@ class VisionFrame:
 
         Z = (self.fx * known_width) / pixel_width
         return Z
-    
+
+    def get_sink_transform(self, sink_body_name="sink"):
+        """Returns rotation matrix and position of the sink body."""
+        sink_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, sink_body_name)
+        if sink_body_id == -1:
+            raise ValueError(f"Sink body '{sink_body_name}' not found in model.")
+        
+        sink_pos = self.model.body_pos[sink_body_id]
+        sink_quat = self.model.body_quat[sink_body_id]
+        r_sink = R.from_quat([sink_quat[1], sink_quat[2], sink_quat[3], sink_quat[0]])
+        R_sink = r_sink.as_matrix()
+        return R_sink, sink_pos
+  
     def project_centroid_to_3d(self, 
                                cx_px: int, 
                                cy_px: int, 
@@ -99,33 +111,32 @@ class VisionFrame:
         X = (cx_px - self.cx) * Z / self.fx
         Y = (cy_px - self.cy) * Z / self.fy
         return np.array([X, Y, Z])
-    
-    def project_pixel_to_world(self, u, v, z):
-        # Intrinsics from MuJoCo
+
+    def project_pixel_to_world(self, u, v, z, apply_sink_rotation=True):
+        """Projects pixel (u, v) + depth z to world coordinates."""
         fovy_deg = self.model.cam_fovy[self.cam_id]
         fy = 0.5 * self.height / np.tan(0.5 * np.deg2rad(fovy_deg))
-        fx = fy  # assume square pixels
+        fx = fy
         cx = self.width / 2
-        cy = self.height / 2  # ✅ FIXED
+        cy = self.height / 2
 
-        # Camera-frame projection
+        # Camera-frame point (Z is negative forward in MuJoCo)
         x = (u - cx) * z / fx
         y = (v - cy) * z / fy
         camera_point = np.array([x, y, -z])
 
-        # Extrinsics
+        if apply_sink_rotation:
+            R_sink, _ = self.get_sink_transform()
+            camera_point = R_sink @ camera_point
+
+        # Camera extrinsics
         cam_pos = self.model.cam_pos[self.cam_id]
-        cam_quat = self.model.cam_quat[self.cam_id]  # [w, x, y, z] in MuJoCo
-
-        r = R.from_quat([cam_quat[1], cam_quat[2], cam_quat[3], cam_quat[0]])  # convert to [x, y, z, w]
+        cam_quat = self.model.cam_quat[self.cam_id]
+        r = R.from_quat([cam_quat[1], cam_quat[2], cam_quat[3], cam_quat[0]])
         R_c2w = r.as_matrix()
-
-        # Step 4: Transform point from camera to world
         world_point = R_c2w @ camera_point + cam_pos
-        self.logger.info(f"Pixel: u={u}, v={v}, depth z={z}")
-        self.logger.info(f"Camera point (before transform): {camera_point}")
-        self.logger.info(f"Camera pos: {cam_pos}")
-        self.logger.info(f"Camera quat: {cam_quat}")
-        self.logger.info(f"Rotation matrix R_c2w:\n{R_c2w}")
+        self.logger.info(f"[project_pixel_to_world] u={u}, v={v}, z={z}")
+        self.logger.info(f"Camera point (post-sink rotation): {camera_point}")
         self.logger.info(f"World point: {world_point}")
         return world_point
+ 

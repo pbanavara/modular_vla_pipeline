@@ -104,6 +104,12 @@
   </default>
 
   <worldbody>
+  <site name="ik_target_marker" 
+      pos="-0.14999904 -0.2285476 -0.3785524" 
+      size="0.12" 
+      rgba="1 0 0 1" 
+      type="sphere"/>
+
   <light mode="targetbodycom" target="left/shoulder_link" pos="0 0 -2.5"
        cutoff="55" specular="0.1 0.1 0.1"/>
   <light mode="targetbodycom" target="right/shoulder_link" pos="0 -1 -2.5"
