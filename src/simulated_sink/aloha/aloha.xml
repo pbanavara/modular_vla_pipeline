@@ -40,11 +40,11 @@
         <position ctrlrange="-3.14158 3.14158" kp="43"/>
       </default>
       <default class="shoulder">
-        <joint range="-1.85005 1.25664" armature="0.395" frictionloss="2.0" damping="20.0" actuatorfrcrange="-144 144"/>
+        <joint range="-1.85005 1.25664" armature="0.395" frictionloss="2.0" damping="20.0" actuatorfrcrange="-144 144" axis="0 1 0"/>
         <position ctrlrange="-1.85005 1.25664" kp="265"/>
       </default>
       <default class="elbow">
-        <joint range="-1.76278 1.6057" armature="0.383" frictionloss="1.15" damping="18.49" actuatorfrcrange="-59 59"/>
+        <joint range="-1.76278 1.6057" armature="0.383" frictionloss="1.15" damping="18.49" actuatorfrcrange="-59 59" axis= "0 1 0"/>
         <position ctrlrange="-1.76278 1.6057" kp="227"/>
       </default>
       <default class="forearm_roll">
@@ -52,7 +52,7 @@
         <position ctrlrange="-3.14158 3.14158" kp="78"/>
       </default>
       <default class="wrist_angle">
-        <joint range="-1.8675 2.23402" armature="0.008" damping="6.28"/>
+        <joint range="-1.8675 2.23402" armature="0.008" damping="6.28" axis="0 1 0"/>
         <position ctrlrange="-1.8675 2.23402" kp="37"/>
       </default>
       <default class="wrist_rotate">
@@ -104,12 +104,6 @@
   </default>
 
   <worldbody>
-  <site name="ik_target_marker" 
-      pos="-0.14999904 -0.2285476 -0.3785524" 
-      size="0.12" 
-      rgba="1 0 0 1" 
-      type="sphere"/>
-
   <light mode="targetbodycom" target="left/shoulder_link" pos="0 0 -2.5"
        cutoff="55" specular="0.1 0.1 0.1"/>
   <light mode="targetbodycom" target="right/shoulder_link" pos="0 -1 -2.5"

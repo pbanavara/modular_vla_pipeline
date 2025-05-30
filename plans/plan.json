@@ -5,34 +5,30 @@
     "gripper": "open",
     "trajectory": [
       {
-        "position": [-0.6, -0.2, 1.0],
+        "position": [0.15, -0.27, -0.25],
         "rotation": [0, 1.57, 0]
       },
       {
-        "position": [-0.45, -0.15, 1.0],
-        "rotation": [0, 1.57, 0]
-      },
-      {
-        "position": [-0.5, -0.18, 0.98],
+        "position": [0.25, -0.27, -0.27],
         "rotation": [0, 1.57, 0]
       }
     ]
   },
   {
-    "action": "move_to_pose", 
+    "action": "move_to_pose",
     "arm": "left",
     "gripper": "open",
     "trajectory": [
       {
-        "position": [-0.49, -0.17, 0.95],
+        "position": [0.25894737, -0.27473684, -0.31981317],
         "rotation": [0, 1.57, 0]
       },
       {
-        "position": [-0.495, -0.169, 0.9],
+        "position": [0.25894737, -0.27473684, -0.36981317],
         "rotation": [0, 1.57, 0]
       },
       {
-        "position": [-0.495, -0.17, 0.88],
+        "position": [0.25894737, -0.27473684, -0.39981317],
         "rotation": [0, 1.57, 0]
       }
     ]
@@ -45,19 +41,19 @@
   },
   {
     "action": "move_to_pose",
-    "arm": "left", 
+    "arm": "left",
     "gripper": "close",
     "trajectory": [
       {
-        "position": [-0.495, -0.17, 0.9],
+        "position": [0.25894737, -0.27473684, -0.36981317],
         "rotation": [0, 1.57, 0]
       },
       {
-        "position": [-0.49, -0.17, 0.95],
+        "position": [0.25894737, -0.27473684, -0.31981317],
         "rotation": [0, 1.57, 0]
       },
       {
-        "position": [-0.48, -0.18, 1.0],
+        "position": [0.20, -0.27473684, -0.27],
         "rotation": [0, 1.57, 0]
       }
     ]

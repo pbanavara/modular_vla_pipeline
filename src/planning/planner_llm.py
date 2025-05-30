@@ -5,7 +5,7 @@ from planning.prompt_builder import PromptBuilder
 class PlannerLLM:
     def __init__(self,
                  robot_yaml_path: str,
-                 model: str = "claude-3-sonnet-20240229"):
+                 model: str = "claude-3-7-sonnet-20250219"):
         self.model = model
         self.prompt_builder = PromptBuilder(robot_yaml_path)
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -15,24 +15,6 @@ class PlannerLLM:
             model=self.model,
             max_tokens=4096,
             temperature=0.7,
-            system=
-            """You are a robotic planning assistant specialized in generating precise action sequences for robotic manipulation tasks.
-            Your role is to:
-            1. Analyze the provided robot specifications, perception data, and task requirements
-            2. Generate a detailed sequence of robotic actions in JSON format
-            3. Ensure each action is physically feasible given the robot's joint limits and workspace
-            4. Generate smooth trajectories with multiple waypoints for each motion
-            5. Include precise position and rotation values for every waypoint
-            6. The given waypoints must work with the inverse kinematics functions based on error minimization similar to gradient descent.
-
-            Critical Requirements:
-            - Every trajectory MUST contain multiple waypoints (minimum 5 to 6 per motion)
-            -- Every trajectory must not be stateless meaning, the trajectories should culminate in the final position for the arm.
-            - Approach and grasp motions require at least 4-5 waypoints for smoothness
-            - All waypoints must have valid position and rotation values
-            - Trajectories must enable smooth, continuous motion through all waypoints
-            - Motion planning must respect the robot's physical constraints and limits
-            """,
             messages=[{"role": "user", "content": prompt}],
         )
         return response.content[0].text

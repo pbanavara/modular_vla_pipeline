@@ -121,14 +121,17 @@ class MujocoRealtimeExecutor:
                 str(self.model_path), CAMERA_NAME, image, (640, 480), mapped_object_name
             )
             Z = frame.estimate_depth_from_mask(object["mask"], mapped_object_name)
-            Z = Z * 0.4
-
             self.logger.info(f"Estimated depth of the object : {Z}")
             self.logger.info(f"Centroid: {cx_px}, {cy_py}")
             world_coords = frame.project_pixel_to_world(cx_px, cy_py, Z)
             self.logger.info(f"World coordinates: {world_coords}")
+            plate_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "plate")
+            sink_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "sink")
+            self.logger.info(f"Sink world position:, {self.data.xpos[sink_id]}")
+            self.logger.info(f"Plate center (data.xpos):, {self.data.xpos[plate_body_id]}")
+            
             perception_output = [
-                {"name": mapped_object_name, "labels": ["plate"]},
+                {"name": mapped_object_name, "labels": [object["name"]]},
             ]
             known_positions = {mapped_object_name: world_coords}
             return perception_output, known_positions
@@ -195,13 +198,14 @@ class MujocoRealtimeExecutor:
         # Temporary hack to get the arm to move to the plate
         for step in trajectory:
             pos = np.array(step["position"])
-            # TODO These hardcoded placeholders remove
+            # TODO These hardcoded placeholders are a reminder of the painstaking iteration of getting IK to work 
             #pos = np.array([-0.14999904, - 0.2285476, - 0.3785524]) 
-            pos = np.array([-1.2363652, -0.27473684, 0.96247765])
-            pos = np.array([-0.49454608, -0.16989474, 0.86499106])
+            #pos = np.array([-1.2363652, -0.27473684, 0.96247765])
+            #pos = np.array([-0.49454608, -0.16989474, -0.86499106])
             self.logger.info(
-                f"Current EE pos: {self.data.site_xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper)]}")
-            self.logger.info(f"plate positioon {pos}")
+                f"Current EE pos: {self.data.site_xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, gripper)]}"
+                f"Current Plate pos: {self.data.site_xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, 'plate')]}")
+            self.logger.info(f"Gripper positioon {pos}")
             #rot = np.array(step["rotation"])
             rot = None
             self.logger.info(f"Updated persistent joint state: {self.last_action_state}")
@@ -304,7 +308,15 @@ class MujocoRealtimeExecutor:
             tuple(self.model.jnt_range[self.model.joint(name).id])
             for name in gripper_joints
         ]
-        result = minimize(cost_fn, q_init, method="L-BFGS-B", bounds=bounds)
+        #result = minimize(cost_fn, q_init, method="L-BFGS-B", bounds=bounds)
+        result = minimize(
+            cost_fn,
+            q_init,
+            method="L-BFGS-B",
+            bounds=bounds,
+            tol=1e-6,
+            options={"maxiter": 1000, "disp": True},
+        )
         if not result.success:
             raise RuntimeError(f"IK solver failed: {result.message}")
         return result.x

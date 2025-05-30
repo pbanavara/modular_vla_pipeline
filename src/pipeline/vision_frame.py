@@ -112,7 +112,7 @@ class VisionFrame:
         Y = (cy_px - self.cy) * Z / self.fy
         return np.array([X, Y, Z])
 
-    def project_pixel_to_world(self, u, v, z, apply_sink_rotation=True):
+    def project_pixel_to_world(self, u, v, z, apply_sink_rotation=False):
         """Projects pixel (u, v) + depth z to world coordinates."""
         fovy_deg = self.model.cam_fovy[self.cam_id]
         fy = 0.5 * self.height / np.tan(0.5 * np.deg2rad(fovy_deg))
@@ -124,17 +124,17 @@ class VisionFrame:
         x = (u - cx) * z / fx
         y = (v - cy) * z / fy
         camera_point = np.array([x, y, -z])
-
         if apply_sink_rotation:
             R_sink, _ = self.get_sink_transform()
             camera_point = R_sink @ camera_point
-
         # Camera extrinsics
         cam_pos = self.model.cam_pos[self.cam_id]
         cam_quat = self.model.cam_quat[self.cam_id]
         r = R.from_quat([cam_quat[1], cam_quat[2], cam_quat[3], cam_quat[0]])
         R_c2w = r.as_matrix()
         world_point = R_c2w @ camera_point + cam_pos
+        self.logger.info(f"Camera world position: {cam_pos}")
+        self.logger.info(f"Camera forward direction: {R_c2w @ np.array([0, 0, -1])}")
         self.logger.info(f"[project_pixel_to_world] u={u}, v={v}, z={z}")
         self.logger.info(f"Camera point (post-sink rotation): {camera_point}")
         self.logger.info(f"World point: {world_point}")
