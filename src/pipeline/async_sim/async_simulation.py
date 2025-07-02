@@ -14,21 +14,22 @@ from log.setup_logger import setup_logger
 from perception.capture import camera_capture
 from perception.classification_segmentation.segmentation_image import SAMSegmentation
 from planning.planner_llm import PlannerLLM
-from action.mujoco_executor  import MuJoCoExecutor
+from planning.llama_planner import LlamaPlanner
 from pipeline.vision_frame import VisionFrame
-from pipeline import cache_helper
 import json
-import matplotlib.pyplot as plt
 from perception.classification_segmentation.owl_vit import OwlVitDetector
 from PIL import Image, ImageOps
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import minimize
+import time
 
 
 CAMERA_NAME = "teleoperator_pov"
 
 class MujocoRealtimeExecutor:
     def __init__(self, model_path: str):
+        start = time.time()
+        self.logger = setup_logger("MujocoRealtimeExecutor")
         self.model_path = model_path
         self.model = mujoco.MjModel.from_xml_path(model_path)
         self.data = mujoco.MjData(self.model)
@@ -41,7 +42,8 @@ class MujocoRealtimeExecutor:
         self.left_arm_joints = [name for name in self.joint_names if name.startswith("left/")]
         self.right_arm_joints = [name for name in self.joint_names if name.startswith("right/")]
         self.text_prompts = get_text_prompts()
-        self.logger = setup_logger("MujocoRealtimeExecutor")
+        end = time.time()
+        self.logger.info(f"MujocoRealtimeExecutor initialization completed in {end - start:.3f}s")
 
     def enqueue_action(self, action):
         """Enqueue a single control/qpos action (list or np.array)."""
@@ -150,13 +152,41 @@ class MujocoRealtimeExecutor:
             self.logger.info(f"Creating new plan for task")
             task = input("Enter the dishwashing task:: ")
             perception_output, known_positions = await self.segment_and_retrieve_depth()
-            aloha_yaml_path = str(get_resolved_path("../planning/aloha.yaml"))
-            if not os.path.exists(aloha_yaml_path):
-                self.logger.info(f"aloha yaml file does not exist: {aloha_yaml_path}")
-            self.logger.info(f"ALOHA YAML path: {aloha_yaml_path}")
-            planner = PlannerLLM(robot_yaml_path=aloha_yaml_path)
+            
+            # Optimized LlamaPlanner initialization with performance logging
+            self.logger.info("🚀 Initializing LlamaPlanner (optimized)...")
+            init_start_time = time.time()
+            
+            llama_yaml_path = str(get_resolved_path("../planning/llama.yaml"))
+            planner = LlamaPlanner(
+                robot_yaml_path=llama_yaml_path,
+                model="llama-4-maverick-17b-128e-instruct-fp8",
+                enable_caching=True,
+                cache_size=1000,
+                max_workers=4,
+                timeout=30.0,
+                max_retries=3
+            )
+            
+            init_time = time.time() - init_start_time
+            self.logger.info(f"✅ LlamaPlanner initialized in {init_time:.3f}s (optimized)")
+            
+            # Generate plan with performance logging
+            self.logger.info("🤖 Generating action plan...")
+            plan_start_time = time.time()
+            
             plan = planner.build_action_plan(task, perception_output, known_positions)
+            
+            plan_time = time.time() - plan_start_time
+            self.logger.info(f"✅ Plan generated in {plan_time:.3f}s")
+            
+            # Save plan and get performance stats
             planner.save_plan(plan, plan_json_path)
+            stats = planner.get_performance_stats()
+            self.logger.info(f"📊 Performance: {stats['total_requests']} requests, "
+                           f"avg {stats['avg_response_time']:.3f}s, "
+                           f"cache hit rate {stats['cache_hit_rate']:.1%}")
+            
             self.logger.info(f"Generated plan: {plan}")
             plan = json.loads(plan)
         self.enqueue_plan(plan)

@@ -47,7 +47,7 @@ class PromptBuilder:
             - Rotations are in radians (Euler angles)
 
             ## Output Format Instructions
-            You must return a JSON array of task steps that forms a complete action sequence to accomplish the task. Respond with raw JSON only. Do not wrap in markdown code blocks or use triple backticks.
+            You must return a JSON array of task steps that forms a complete action sequence to accomplish the task. hhhhhhjudyfe9wyfr87ptg7Respond with raw JSON only. Do not wrap in markdown code blocks or use triple backticks.
             For a grabbing task, you typically need these steps:
             1. Pre-grasp: Move to a position slightly above the target
             2. Approach: Move down to the actual grasp position
@@ -112,7 +112,7 @@ class PromptBuilder:
                 "gripper": "close",
                 "trajectory": [
                   {{
-                    "position": [target_x, target_y, target_z + 0.05],  # Initial lift
+                   "position": [target_x, target_y, target_z + 0.05],  # Initial lift
                     "rotation": [0, 1.57, 0]
                   }},
                   {{

@@ -1,0 +1,99 @@
+robot:
+  name: Aloha Dual Arm (Llama Optimized)
+  type: Fixed-base, two 6-DOF arms
+  mounting: Countertop-fixed
+  camera:
+    - wrist_cam_left
+    - wrist_cam_right
+    - teleoperator_pov
+    - collaborator_pov
+  grippers:
+    type: Parallel jaw
+    control_type: Sliding joints (linear displacement)
+    joint_range_m: [0.0, 0.041]
+    control_range_m: [0.002, 0.037]
+    finger_spacing_max_cm: 8.2
+
+arms:
+  left_arm:
+    joints:
+      - name: left/waist
+        axis: [0, 0, 1]
+        range_rad: [-3.14158, 3.14158]
+      - name: left/shoulder
+        range_rad: [-1.85005, 1.25664]
+      - name: left/elbow
+        range_rad: [-1.76278, 1.6057]
+      - name: left/forearm_roll
+        axis: [1, 0, 0]
+        range_rad: [-3.14158, 3.14158]
+      - name: left/wrist_angle
+        range_rad: [-1.8675, 2.23402]
+      - name: left/wrist_rotate
+        axis: [1, 0, 1]
+        range_rad: [-3.14158, 3.14158]
+
+  right_arm:
+    joints:
+      - name: right/waist
+        axis: [0, 0, 1]
+        range_rad: [-3.14158, 3.14158]
+      - name: right/shoulder
+        range_rad: [-1.85005, 1.25664]
+      - name: right/elbow
+        range_rad: [-1.76278, 1.6057]
+      - name: right/forearm_roll
+        axis: [1, 0, 0]
+        range_rad: [-3.14158, 3.14158]
+      - name: right/wrist_angle
+        range_rad: [-1.8675, 2.23402]
+      - name: right/wrist_rotate
+        axis: [1, 0, 1]
+        range_rad: [-3.14158, 3.14158]
+
+workspace:
+  type: Cylindrical
+  reach_radius_cm: 65
+  vertical_range_cm: 45
+  operating_area: "Kitchen sink + counter"
+
+# Llama-specific optimizations
+llama_config:
+  # Llama models work better with structured, step-by-step instructions
+  instruction_style: "step_by_step"
+  
+  # Llama models prefer explicit context and clear role definitions
+  context_format: "explicit"
+  
+  # Llama models benefit from repetition of key constraints
+  constraint_repetition: true
+  
+  # Llama models work well with numbered lists and clear hierarchies
+  output_format: "numbered_list"
+  
+  # Llama models respond well to examples and demonstrations
+  include_examples: true
+  
+  # Llama models prefer shorter, more focused prompts
+  prompt_optimization: "concise"
+  
+  # Llama models work well with explicit coordinate system definitions
+  coordinate_system: "explicit_definition"
+  
+  # Llama models benefit from clear action vocabulary
+  action_vocabulary:
+    - "move_to_pose"
+    - "grasp"
+    - "release"
+    - "approach"
+    - "retract"
+    - "lift"
+    - "place"
+  
+  # Llama models work well with safety constraints
+  safety_constraints:
+    - "Stay within workspace limits"
+    - "Avoid self-collision"
+    - "Maintain minimum clearance"
+    - "Use smooth trajectories"
+    - "Check gripper state before actions" 

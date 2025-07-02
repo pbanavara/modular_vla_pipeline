@@ -1,60 +1,71 @@
 [
   {
+    "step": 1,
     "action": "move_to_pose",
-    "arm": "left",
+    "arm": "right",
     "gripper": "open",
+    "description": "Move to pre-grasp position",
     "trajectory": [
       {
-        "position": [0.15, -0.27, -0.25],
-        "rotation": [0, 1.57, 0]
-      },
-      {
-        "position": [0.25, -0.27, -0.27],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.19734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Pre-grasp position 15cm above target"
       }
     ]
   },
   {
+    "step": 2,
     "action": "move_to_pose",
-    "arm": "left",
+    "arm": "right",
     "gripper": "open",
+    "description": "Approach target in stages",
     "trajectory": [
       {
-        "position": [0.25894737, -0.27473684, -0.31981317],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.24734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Intermediate approach 10cm above"
       },
       {
-        "position": [0.25894737, -0.27473684, -0.36981317],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.29734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Close approach 5cm above"
       },
       {
-        "position": [0.25894737, -0.27473684, -0.39981317],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.32734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Final approach 2cm above"
       }
     ]
   },
   {
+    "step": 3,
     "action": "grasp",
-    "arm": "left",
+    "arm": "right",
     "gripper": "close",
+    "description": "Close gripper on object",
     "trajectory": []
   },
   {
+    "step": 4,
     "action": "move_to_pose",
-    "arm": "left",
+    "arm": "right",
     "gripper": "close",
+    "description": "Lift object safely",
     "trajectory": [
       {
-        "position": [0.25894737, -0.27473684, -0.36981317],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.29734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Initial lift 5cm above grasp"
       },
       {
-        "position": [0.25894737, -0.27473684, -0.31981317],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.06336634, -0.26039604, -0.19734902],
+        "rotation": [0, 1.57, 0],
+        "description": "Higher lift 15cm above grasp"
       },
       {
-        "position": [0.20, -0.27473684, -0.27],
-        "rotation": [0, 1.57, 0]
+        "position": [-0.1, -0.26039604, -0.15],
+        "rotation": [0, 1.57, 0],
+        "description": "Move back and up for clearance"
       }
     ]
   }
