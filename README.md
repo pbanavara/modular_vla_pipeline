@@ -256,3 +256,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Ready to build the future of LLM-driven robotics? Start with `python src/main.py`!** 
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pbanavara/modular_vla_pipeline)
